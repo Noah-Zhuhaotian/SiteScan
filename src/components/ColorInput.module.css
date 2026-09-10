@@ -1,0 +1,35 @@
+.root { display: flex; flex-direction: column; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker {
+  width: 40px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.hexInput {
+  width: 110px !important;
+  font-family: 'Courier New', monospace !important;
+  font-size: 13px !important;
+  letter-spacing: 1px;
+}
+
+.warning {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #7a5c00;
+}
