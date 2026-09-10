@@ -4,7 +4,7 @@ import PreviewCanvas from './components/PreviewCanvas'
 import styles from './App.module.css'
 
 const DEFAULT_SETTINGS = {
-  title: '',
+  title: 'Selected colours',
   canvasW: 1366,
   canvasH: 768,
   dotSize: 28,
@@ -39,7 +39,6 @@ export default function App() {
     <div className={styles.app}>
       <header className={styles.header}>
         <h1>Color Wheel Generator</h1>
-        <p>Add colors to visualize their positions on a color wheel, then export as PNG or SVG</p>
       </header>
 
       <div className={styles.layout}>

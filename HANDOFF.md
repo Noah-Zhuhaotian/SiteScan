@@ -5,7 +5,7 @@
 Build and deploy a React web app that lets users:
 1. Input hex color values (with optional labels)
 2. Visualize them as positioned dots on an HSL color wheel
-3. Show a color list panel on the right (title + rounded-square swatches + hex codes)
+3. Show a color list panel on the right (colour count + title + rounded-square swatches + hex codes)
 4. Export the result as PNG or SVG at a custom resolution
 5. Deploy via GitHub Actions to GitHub Pages
 
@@ -26,33 +26,35 @@ Build and deploy a React web app that lets users:
 
 - [x] Full React app scaffolded with Vite (`npm run dev` / `npm run build`)
 - [x] GitHub Actions workflow at `.github/workflows/deploy.yml` (build → upload `dist/` → deploy)
+- [x] GitHub Pages live — enabled via repo Settings → Pages → Source → GitHub Actions
 - [x] Color wheel rendered on `<canvas>` using pixel-by-pixel HSL math (`putImageData`)
 - [x] Color dots positioned by hue (angle) and saturation (distance from center)
 - [x] Hover tooltip over dots showing hex + label
 - [x] Color list panel on the right side of the exported image:
+  - Colour count label above title ("N colours")
+  - Bold title (default: "Selected colours")
+  - Separator line with generous gap to first item
   - Rounded-square swatches (not circles), 20% corner radius
   - Hex code in monospace + optional label inline to the right
-  - Title ("Competition Colours") with separator line
+  - **Vertically centred**: `computeListY0` anchors the item block at `H/2`, expanding up/down — not top-anchored
   - **Auto single→two-column layout** when colors overflow available height
-  - **Dynamic scaling**: if two columns still overflow, swatch/font sizes shrink proportionally to fit; if even minimum size isn't enough, truncates with "+N more"
-  - **Click-to-copy**: clicking a color row in the preview copies the hex to clipboard, shows a brief "Copied!" toast
-- [x] Settings: canvas width/height, dot size slider, chart title input
-- [x] **Aspect ratio presets**: 16:9 / 4:3 / 3:2 / 1:1 buttons auto-compute height from current width; active preset highlighted
-- [x] **Canvas size inputs**: `type="text" inputMode="numeric"`, filters non-digits on change, clamps to 400–3000 px only on blur/Enter (no mid-typing jumps)
-- [x] Default canvas: 1366×768 (16:9)
-- [x] Export options checkboxes: "Show colour list" and "Show dot labels"
+  - **Dynamic scaling**: if two columns still overflow, swatch/font sizes shrink proportionally; if even minimum size isn't enough, truncates with "+N more"
+  - **Click-to-copy**: clicking a color row copies the hex to clipboard, shows a brief "Copied!" toast
+- [x] Settings panel:
+  - Chart title input (default: "Selected colours")
+  - **Canvas size dropdown** — 3 standard 16:9 presets only: HD (1366×768), Full HD (1920×1080), 2K (2560×1440)
+  - Dot size slider
+  - Export option checkboxes: "Show colour list" and "Show dot labels"
 - [x] Export PNG (full resolution) and Export SVG (vector)
 - [x] White background fix using `destination-over` compositing
 - [x] `.gitignore` with `node_modules/`, `dist/`, `.env`, editor files
-- [x] **50-color limit**: `addColor` blocks beyond 50; UI disables all inputs and shows English warning when limit reached
-- [x] **Duplicate color warning**: attempting to add an already-present hex shows "This colour is already in the list." inline
-- [x] **Color list title moved to top** (`listY0 = H * 0.12`), separator gap fixed so it doesn't overlap the first row
-- [x] **Adaptive wheel radius**: `getWheelGeometry(W, H, showColorList)` shrinks `wheelR` when needed so the colour list always has ≥ 180 px on the right — fixes truncation at 1:1 and tall aspect ratios
-
-### GitHub Pages setup (user still needs to do)
-
-1. Go to repo Settings → Pages → Source → **GitHub Actions**
-2. Push to `main` branch to trigger the first deploy
+- [x] **50-color limit**: `addColor` blocks beyond 50; UI disables all inputs and shows warning when limit reached
+- [x] **Duplicate color warning**: attempting to add an already-present hex shows inline warning
+- [x] **Auto `#` completion**: hex input auto-prepends `#` on blur if missing (e.g. `FF6600` → `#FF6600`)
+- [x] **Adaptive wheel radius**: `getWheelGeometry` shrinks `wheelR` when needed so the colour list always has ≥ 180 px on the right
+- [x] **Wheel position**: `cx = max(wheelR + 15, W * 0.33)` — shifted left for better visual balance
+- [x] **Wheel-to-list gap**: `max(48, W * 0.042)` — generous breathing room between wheel edge and list
+- [x] **Sharp preview canvas**: preview renders at exact buffer resolution (`cssW * dpr × cssH * dpr`) using `buildCanvas` directly, then `drawImage` 1:1 — no scaling blur on any DPR screen
 
 ---
 
@@ -73,14 +75,15 @@ c:\code\SiteScan\
     ├── components/
     │   ├── ControlPanel.jsx/css        # Left sidebar container
     │   ├── ColorInput.jsx/css          # Color picker + hex input + add button
-    │   │                               # Validates duplicate hex; shows English warnings
+    │   │                               # Auto-prepends # on blur; duplicate warning
     │   ├── ColorList.jsx/css           # List of added colors with remove buttons
-    │   ├── Settings.jsx/css            # Title, size presets, dot size, export checkboxes
+    │   ├── Settings.jsx/css            # Title, size dropdown, dot size, export checkboxes
     │   └── PreviewCanvas.jsx/css       # Canvas preview + hover tooltip + click-to-copy + export
     └── utils/
         ├── color.js                    # hexToRgb, rgbToHsl, hslToRgb, isValidHex
         └── renderer.js                 # buildCanvas(), buildSvg(), getWheelGeometry(),
-                                        # getColorListLayout(), computeListLayout(), WHEEL_RATIO
+                                        # getColorListLayout(), computeListLayout(),
+                                        # computeListY0(), WHEEL_RATIO
 ```
 
 ---
@@ -93,15 +96,27 @@ c:\code\SiteScan\
 const MAX_COLORS = 50
 
 const DEFAULT_SETTINGS = {
-  title: '',        // Chart title (shown on export)
-  canvasW: 1366,    // Export width px
-  canvasH: 768,     // Export height px (16:9 default)
-  dotSize: 28,      // Dot radius px
-  showLabels: true, // Show dot labels on export
-  showColorList: true, // Show right-side colour list on export
+  title: 'Selected colours', // Chart title (shown on export)
+  canvasW: 1366,             // Export width px
+  canvasH: 768,              // Export height px (16:9 default)
+  dotSize: 28,               // Dot radius px
+  showLabels: true,          // Show dot labels on export
+  showColorList: true,       // Show right-side colour list on export
 }
 // colors: [{ hex: '#FF6600', label: 'Primary' }, ...]
 ```
+
+### Canvas size presets (`Settings.jsx`)
+
+```js
+const SIZE_PRESETS = [
+  { label: '1366 × 768 — 16:9 (HD)',       w: 1366, h: 768 },
+  { label: '1920 × 1080 — 16:9 (Full HD)', w: 1920, h: 1080 },
+  { label: '2560 × 1440 — 16:9 (2K)',      w: 2560, h: 1440 },
+]
+```
+
+Free-form width/height inputs and aspect-ratio buttons were removed. The dropdown is the only size control.
 
 ### Wheel geometry (`renderer.js`)
 
@@ -112,20 +127,34 @@ const MIN_LIST_W = 180  // minimum px reserved for colour list
 export function getWheelGeometry(W, H, showColorList = false) {
   let wheelR = Math.min(W, H) * WHEEL_RATIO
   if (showColorList) {
-    const margin = Math.max(25, W * 0.025)
-    const maxA = W * 0.63 - margin - MIN_LIST_W   // cx driven by W*0.37
-    const maxB = (W - MIN_LIST_W - 15 - margin) / 2 // cx driven by wheelR
+    const margin = Math.max(48, W * 0.042)  // gap between wheel edge and list
+    const maxA = W * 0.63 - margin - MIN_LIST_W
+    const maxB = (W - MIN_LIST_W - 15 - margin) / 2
     wheelR = Math.max(50, Math.min(wheelR, maxA, maxB))
   }
-  const cx = Math.max(wheelR + 15, W * 0.37)
+  const cx = Math.max(wheelR + 15, W * 0.33)  // shifted left vs original 0.37
   const cy = H * 0.5
   return { wheelR, cx, cy }
 }
 ```
 
-- Always pass `showColorList` when the list is visible so the wheel doesn't crowd it out.
 - Dot position: `dist = (sat / 100) * wheelR` — dots CAN overflow the wheel edge for high-saturation colours (intentional).
 - Dots overlap at their true HSL positions; no push-apart algorithm (it created unnatural chains).
+
+### Colour list vertical centering (`computeListY0` in `renderer.js`)
+
+```js
+function computeListY0(layout, H) {
+  const { itemH, fontSize, cols, visibleColors } = layout
+  const col1Count = cols === 2 ? Math.ceil(visibleColors.length / 2) : visibleColors.length
+  const countSize = Math.round(fontSize * 0.88)
+  const minY0 = itemH * 2.15 + countSize + 8   // keep header on-screen
+  const centered = H / 2 - (col1Count - 1) * itemH / 2
+  return Math.max(minY0, centered)
+}
+```
+
+The item block is centred at `H/2`. The header (count label + title + separator) floats above `listY0`. Layout is computed with `availH = H * 0.80`.
 
 ### Colour list layout (`computeListLayout` in `renderer.js`)
 
@@ -140,29 +169,42 @@ Priority order:
 3. Two columns scaled down (proportional shrink of swatch + font)
 4. Two columns at minimum size (swatch 14 px, font 10 px) + `+N more` row
 
+### Colour list header positions (in `drawColorList`)
+
+Relative to `listY0` (centre of first item row):
+- Count label baseline: `listY0 - itemH * 2.05`
+- Title baseline: `listY0 - itemH * 1.45`
+- Separator line: `listY0 - itemH * 0.82`
+
+The gap between separator and top of first swatch is `≈ swatchSize * 0.69` (≈ 20 px at HD).
+
 ### Click-to-copy (`PreviewCanvas.jsx` + `getColorListLayout`)
 
-`getColorListLayout(colors, W, H)` returns `{ items: [{ hex, label, x, y, w, h }] }` — bounding boxes in **export coordinates**. `PreviewCanvas` maps mouse clicks from display pixels → export pixels and hits-tests against these boxes. Cursor switches to `pointer` on hover.
+`getColorListLayout(colors, W, H)` returns `{ items: [{ hex, label, x, y, w, h }] }` — bounding boxes in **export coordinates**. `PreviewCanvas` maps mouse clicks from CSS pixels → export pixels using `canvas.clientWidth/Height` (DPR-safe), then hit-tests against these boxes.
 
-### Canvas size inputs (`Settings.jsx`)
+### Sharp preview rendering (`PreviewCanvas.jsx`)
 
 ```js
-const MIN_DIM = 400
-const MAX_DIM = 3000
+const dpr = window.devicePixelRatio || 1
+const scale = Math.min(1, maxW / canvasW, maxH / canvasH)
+const cssW = Math.round(canvasW * scale)
+const cssH = Math.round(canvasH * scale)
+const bufW = cssW * dpr
+const bufH = cssH * dpr
 
-// Aspect ratio presets
-const ASPECT_PRESETS = [
-  { label: '16:9', ratio: 9/16 },
-  { label: '4:3',  ratio: 3/4 },
-  { label: '3:2',  ratio: 2/3 },
-  { label: '1:1',  ratio: 1 },
-]
+const scaledDotSize = Math.max(1, Math.round(dotSize * bufW / canvasW))
+const offscreen = buildCanvas(colors, title, bufW, bufH, scaledDotSize, ...)
+
+canvas.width = bufW
+canvas.height = bufH
+canvas.style.width = cssW + 'px'
+canvas.style.height = cssH + 'px'
+ctx.drawImage(offscreen, 0, 0)  // 1:1, no scaling
 ```
 
-- Inputs are `type="text" inputMode="numeric"` — no browser spinner arrows, no mid-type clamping.
-- `onChange` strips non-digits; `onBlur`/Enter clamps to 400–3000 and commits to state.
-- Preset buttons apply ratio to current width → compute height → commit both immediately.
-- Active preset detected by `|h/w − ratio| < 0.01`; button highlights when matched.
+The offscreen canvas is rendered at the exact preview buffer size, so `drawImage` is a 1:1 copy — no interpolation, no blur. Export always uses the original `canvasW × canvasH`.
+
+Coordinate mapping uses `canvas.clientWidth/Height` (CSS pixels) not `canvas.width` (device pixels) to stay DPR-correct.
 
 ### The `putImageData` / white background problem (SOLVED)
 
@@ -178,12 +220,6 @@ ctx.globalCompositeOperation = 'source-over'
 
 **Do not pre-fill with `fillRect` before `putImageData`.**
 
-### Hover detection (`PreviewCanvas.jsx`)
-
-Uses `e.nativeEvent.offsetX/Y`, scales to export coordinates, then checks
-`Math.hypot(ex − dotX, ey − dotY) <= dotSize * 1.6`. Must use the same
-`getWheelGeometry(canvasW, canvasH, showColorList)` and `dist = (sat/100) * wheelR` as the renderer.
-
 ---
 
 ## What Didn't Work (don't repeat)
@@ -194,10 +230,12 @@ Uses `e.nativeEvent.offsetX/Y`, scales to export coordinates, then checks
 | Removing white background entirely (transparent PNG) | Windows Photos shows transparent areas as black; confusing to users |
 | Keeping dots inside wheel with `dist = (sat/100) * (wheelR - dotSize)` | Makes highly-saturated colours look wrong (too far from edge); user prefers overflow |
 | Chrome extension approach | Switched to web app early — don't revisit |
-| `type="number"` for canvas size inputs | Browser spinner arrows bypass `onBlur` and apply values immediately; switched to `type="text"` |
+| `type="number"` for canvas size inputs | Browser spinner arrows bypass `onBlur`; switched to dropdown presets instead |
 | Overlap-resolution (iterative push-apart) for dots | Pushes similar-hue colours into an unnatural diagonal chain; reverted to true HSL positions |
-| Fixed `listY0 = H * 0.3` for colour list | Title got pushed off-screen when there were many colours; moved to `H * 0.12` |
-| `getWheelGeometry` without `showColorList` param | Square/tall canvases had colour list truncated because wheelR was too large; now constrained |
+| Fixed `listY0 = H * 0.12` for colour list | List was always top-anchored; replaced with `computeListY0` for vertical centering |
+| `getWheelGeometry` without `showColorList` param | Square/tall canvases had colour list truncated; now constrained |
+| Preview: `drawImage(offscreen[exportRes], 0, 0, cssW*dpr, cssH*dpr)` | Scaling from export resolution to display resolution blurs text on all screens; fixed by rendering at buffer resolution directly |
+| Preview: applying DPR to canvas size but still scaling from export res | Still blurry — DPR alone doesn't help if the source is a different resolution |
 
 ---
 
@@ -209,5 +247,3 @@ Uses `e.nativeEvent.offsetX/Y`, scales to export coordinates, then checks
 - [ ] Multiple named presets / saved palettes (localStorage)
 - [ ] Optional: show competitor name as a second label line in the colour list
 - [ ] Optional: add a legend/key line connecting each colour list item to its dot on the wheel
-- [ ] Make layout responsive for narrower canvas sizes (colour list wraps below wheel when no right-side space)
-- [ ] Add colour count badge to the Export section showing how many colours are included

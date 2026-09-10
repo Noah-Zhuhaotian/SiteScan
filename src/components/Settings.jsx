@@ -26,7 +26,7 @@ export default function Settings({ settings, onChange }) {
           type="text"
           value={title}
           onChange={e => onChange('title', e.target.value)}
-          placeholder="Competition Colours"
+          placeholder="Selected colours"
         />
       </div>
 

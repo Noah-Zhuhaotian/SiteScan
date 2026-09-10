@@ -19,6 +19,10 @@ export default function ColorInput({ onAdd, colorCount = 0, maxColors = 50, colo
     setDupWarning(false)
   }
 
+  const handleHexBlur = () => {
+    if (hex && !hex.startsWith('#')) setHex('#' + hex)
+  }
+
   const submit = () => {
     if (atLimit) return
     const finalHex = (isValidHex(hex) ? hex : '#FF6600').toUpperCase()
@@ -50,6 +54,7 @@ export default function ColorInput({ onAdd, colorCount = 0, maxColors = 50, colo
           className={styles.hexInput}
           value={hex}
           onChange={syncHexToPicker}
+          onBlur={handleHexBlur}
           onKeyDown={onKeyDown}
           placeholder="#RRGGBB"
           maxLength={7}

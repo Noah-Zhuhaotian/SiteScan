@@ -17,15 +17,24 @@ export default function PreviewCanvas({ colors, settings }) {
     const wrap = wrapRef.current
     if (!canvas || !wrap) return
 
-    const offscreen = buildCanvas(colors, title, canvasW, canvasH, dotSize, showLabels, showColorList)
-
+    const dpr = window.devicePixelRatio || 1
     const maxW = wrap.clientWidth - 2
     const maxH = wrap.clientHeight - 2
     const scale = Math.min(1, maxW / canvasW, maxH / canvasH)
+    const cssW = Math.round(canvasW * scale)
+    const cssH = Math.round(canvasH * scale)
+    const bufW = cssW * dpr
+    const bufH = cssH * dpr
 
-    canvas.width = Math.round(canvasW * scale)
-    canvas.height = Math.round(canvasH * scale)
-    canvas.getContext('2d').drawImage(offscreen, 0, 0, canvas.width, canvas.height)
+    // Render directly at buffer resolution so drawImage is 1:1 — no scaling blur
+    const scaledDotSize = Math.max(1, Math.round(dotSize * bufW / canvasW))
+    const offscreen = buildCanvas(colors, title, bufW, bufH, scaledDotSize, showLabels, showColorList)
+
+    canvas.width = bufW
+    canvas.height = bufH
+    canvas.style.width = cssW + 'px'
+    canvas.style.height = cssH + 'px'
+    canvas.getContext('2d').drawImage(offscreen, 0, 0)
   }, [colors, title, canvasW, canvasH, dotSize, showLabels, showColorList])
 
   useEffect(() => { render() }, [render])
@@ -39,7 +48,7 @@ export default function PreviewCanvas({ colors, settings }) {
   const toExportCoords = useCallback((mx, my) => {
     const canvas = canvasRef.current
     if (!canvas) return null
-    return { ex: mx * canvasW / canvas.width, ey: my * canvasH / canvas.height }
+    return { ex: mx * canvasW / canvas.clientWidth, ey: my * canvasH / canvas.clientHeight }
   }, [canvasW, canvasH])
 
   const handleMouseMove = useCallback((e) => {
