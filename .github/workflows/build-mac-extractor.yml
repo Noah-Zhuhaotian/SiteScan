@@ -1,0 +1,42 @@
+name: Build Mac Extractor
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: extractor
+        run: pip install -r requirements.txt
+
+      - name: Build with PyInstaller
+        working-directory: extractor
+        run: |
+          pyinstaller \
+            --windowed \
+            --name "SiteScan Extractor" \
+            --hidden-import customtkinter \
+            --collect-all customtkinter \
+            --onedir \
+            main.py
+
+      - name: Zip .app
+        working-directory: extractor/dist
+        run: zip -r "SiteScan-Extractor-mac.zip" "SiteScan Extractor.app"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SiteScan-Extractor-mac
+          path: extractor/dist/SiteScan-Extractor-mac.zip
+          retention-days: 30

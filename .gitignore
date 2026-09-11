@@ -26,3 +26,10 @@ Thumbs.db
 
 # Logs
 npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+extractor/dist/
+extractor/build/
+extractor/*.spec
