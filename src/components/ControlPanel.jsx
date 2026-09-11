@@ -1,11 +1,12 @@
 import ColorInput from './ColorInput'
 import ColorList from './ColorList'
 import Settings from './Settings'
+import JsonImport from './JsonImport'
 import styles from './ControlPanel.module.css'
 
 export default function ControlPanel({
   colors, settings,
-  onAddColor, onRemoveColor, onClearColors, onUpdateSetting,
+  onAddColor, onAddColors, onRemoveColor, onClearColors, onUpdateSetting,
   maxColors,
 }) {
   return (
@@ -13,6 +14,15 @@ export default function ControlPanel({
       <section className={styles.section}>
         <p className="section-label">Add Color</p>
         <ColorInput onAdd={onAddColor} colorCount={colors.length} maxColors={maxColors} colors={colors} />
+      </section>
+
+      <section className={styles.section}>
+        <p className="section-label">Import JSON</p>
+        <JsonImport
+          onAddColors={onAddColors}
+          existingColors={colors}
+          maxColors={maxColors}
+        />
       </section>
 
       <section className={styles.section}>

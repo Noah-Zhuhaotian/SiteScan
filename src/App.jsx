@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = {
   canvasW: 1366,
   canvasH: 768,
   dotSize: 28,
-  showLabels: true,
+  showLabels: false,
   showColorList: true,
 }
 
@@ -22,6 +22,18 @@ export default function App() {
     setColors(prev => {
       if (prev.length >= MAX_COLORS) return prev
       return [...prev, { hex: hex.toUpperCase(), label }]
+    })
+  }
+
+  const addColors = (items) => {
+    setColors(prev => {
+      const existing = new Set(prev.map(c => c.hex))
+      const additions = items
+        .map(item => typeof item === 'string'
+          ? { hex: item.toUpperCase(), label: '' }
+          : { hex: item.hex.toUpperCase(), label: item.label || '' })
+        .filter(item => !existing.has(item.hex))
+      return [...prev, ...additions].slice(0, MAX_COLORS)
     })
   }
 
@@ -46,6 +58,7 @@ export default function App() {
           colors={colors}
           settings={settings}
           onAddColor={addColor}
+          onAddColors={addColors}
           onRemoveColor={removeColor}
           onClearColors={clearColors}
           onUpdateSetting={updateSetting}

@@ -5,8 +5,7 @@ A React web app for visualizing brand or competition colors on an HSL color whee
 ## Features
 
 - **Color wheel** — pixel-by-pixel HSL rendering; dots positioned by hue (angle) and saturation (distance from center)
-- **Color list panel** — right-side panel showing colour count, title, rounded-square swatches, and hex codes; auto single/two-column layout with dynamic scaling
-- **Vertically centered list** — items expand up and down from the canvas center as colors are added
+- **Color list panel** — right-side panel in a fixed container (8% top/bottom margins); shows colour count, title, swatches, and hex codes; auto single/two-column layout with dynamic scaling; items flow top-to-bottom
 - **Click-to-copy** — click any row in the preview to copy the hex code
 - **Hover tooltips** — mouse over any dot to see its hex + label
 - **Export** — PNG at full resolution or SVG vector
