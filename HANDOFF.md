@@ -29,6 +29,7 @@ Build and deploy a React web app + companion Mac desktop tool that lets users:
 
 - [x] Full React app scaffolded with Vite (`npm run dev` / `npm run build`)
 - [x] GitHub Actions workflow at `.github/workflows/deploy.yml` (build → upload `dist/` → deploy)
+- [x] GitHub Actions workflow at `.github/workflows/build-mac-extractor.yml` — manual `workflow_dispatch` with a `version` input; builds on `macos-latest`, zips `.app`, creates a GitHub Release with the zip attached
 - [x] GitHub Pages live — enabled via repo Settings → Pages → Source → GitHub Actions
 - [x] Color wheel rendered on `<canvas>` using pixel-by-pixel HSL math (`putImageData`)
 - [x] Color dots positioned by hue (angle) and saturation (distance from center)
@@ -81,6 +82,7 @@ Build and deploy a React web app + companion Mac desktop tool that lets users:
   - ~~Save All JSON button~~ removed — copy-to-clipboard workflow is sufficient
 - [x] `requirements.txt`: `customtkinter>=5.2.0`, `playwright>=1.44.0`, `Pillow>=10.0.0`, `pyinstaller>=6.0.0`
 - [x] `build_mac.sh` — PyInstaller `.app` build script (no `playwright install` needed; uses system Chrome)
+- [x] `README.md` — extractor-specific docs: download, usage, JSON format, run from source, build instructions
 
 ---
 
@@ -121,6 +123,7 @@ c:\code\SiteScan\
 ├── .gitignore
 ├── HANDOFF.md
 ├── .github/workflows/deploy.yml
+├── .github/workflows/build-mac-extractor.yml  # manual trigger → builds .app → GitHub Release
 ├── extractor/                          # Python companion tool
 │   ├── main.py                         # CustomTkinter UI
 │   ├── extractor.py                    # Playwright colour extraction
@@ -298,6 +301,6 @@ ctx.globalCompositeOperation = 'source-over'
 - [ ] Import colors from a CSV or paste a list of hex codes
 - [ ] Color picker shows HSL values alongside hex
 - [ ] Multiple named presets / saved palettes (localStorage)
-- [ ] Sign and notarise the Mac `.app` for distribution outside App Store
+- [ ] Sign and notarise the Mac `.app` for distribution outside App Store (currently unsigned — users need to right-click → Open on first launch)
 - [ ] Filter near-white / near-black colours in extractor (optional toggle)
 - [ ] Show each brand's colours as a distinct visual group on the wheel (e.g. ring segments)

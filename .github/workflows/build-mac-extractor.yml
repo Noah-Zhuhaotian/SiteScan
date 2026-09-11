@@ -2,6 +2,14 @@ name: Build Mac Extractor
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -34,9 +42,23 @@ jobs:
         working-directory: extractor/dist
         run: zip -r "SiteScan-Extractor-mac.zip" "SiteScan Extractor.app"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: SiteScan-Extractor-mac
-          path: extractor/dist/SiteScan-Extractor-mac.zip
-          retention-days: 30
+          tag_name: ${{ github.event.inputs.version }}
+          name: SiteScan Extractor ${{ github.event.inputs.version }}
+          body: |
+            ## SiteScan Extractor for macOS
+
+            Download `SiteScan-Extractor-mac.zip` below, unzip, and drag **SiteScan Extractor.app** to `/Applications`.
+
+            **Requirements:** macOS with Google Chrome installed. No other setup needed.
+
+            ### Usage
+            1. Add competitor URLs and a brand name
+            2. Click **Analyse & Add** — extraction takes ~10–20 s per site
+            3. Click **Background**, **Text**, or **Accent** to copy that category's JSON
+            4. Paste into [SiteScan](https://noah-zhuhaotian.github.io/SiteScan/) → Import JSON → Add colours
+          files: extractor/dist/SiteScan-Extractor-mac.zip
+          draft: false
+          prerelease: false
